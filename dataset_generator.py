@@ -41,7 +41,7 @@ def generar_datos(num_pisos, num_muestras, vel_traslado):
     data = []
 
     for _ in range(num_muestras):
-        piso_llamada = np.random.randint(0, num_pisos)
+        piso_llamada = np.random.randint(1, num_pisos)
         direccion_llamada = np.random.choice([-1, 1])  # 0: bajar, 1: subir
 
         piso_actual_asc_1 = np.random.randint(1, num_pisos)

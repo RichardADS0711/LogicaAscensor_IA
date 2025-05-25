@@ -40,12 +40,14 @@ class Ascensor:
         self.destinos.sort()
 
         self.personas_dentro = 1 if self.destinos.__len__() > 0 else 0
+        self.luces = 1 if self.personas_dentro == 1 else 0
 
     def actualizar_estado(self):
         return (
             f"Piso actual: {self.piso_actual + 1}\n"
-            f"Dirección: {self.direccion}\n"
-            f"Personas Dentro: {self.personas_dentro}\n"
+            f"Dirección: {self.direccion}\n"            
+            f"Luces: {'Encendidas' if self.luces == 1 else 'Apagadas'}\n"
+            f"Personas Dentro: {'Sí' if self.personas_dentro == 1 else 'No'}\n"
             f"Destinos Pendientes: {[d+1 for d in self.destinos]}"
         )
 
@@ -195,10 +197,13 @@ class InterfazAscensores(tk.Tk):
         ]])
 
         pred = self.modelo.predict(entrada, verbose=1)
-        print("Entrada:", entrada)
-        print("Predicción raw:", pred)
+
         prob = pred[0][0]
         ascensor_seleccionado = 1 if prob > 0.5 else 0
+
+        print("Entrada:", entrada)
+        print("Predicción raw:", pred)
+        print("Probabilidad:", prob)
 
         asc_sel = self.ascensores[ascensor_seleccionado]
         if piso_llamada not in asc_sel.destinos:
@@ -206,7 +211,7 @@ class InterfazAscensores(tk.Tk):
 
         tiempo = datos_asc[ascensor_seleccionado]["tiempo_estimado"]
         precision = prob if ascensor_seleccionado == 1 else 1 - prob
-        precision_pct = round(precision * 100, 2)
+        precision_pct = precision * 100
         # Mostrar resultado en popup
         msg = (
             f"Ascensor seleccionado: {asc_sel.nombre}\n"
