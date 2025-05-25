@@ -13,17 +13,40 @@ class Ascensor:
 
     def reset_estado(self):
         self.piso_actual = random.randint(0, self.num_pisos - 1)
-        self.direccion = random.choice(["subiendo", "bajando", "detenido"])
-        self.destinos = random.sample(range(self.num_pisos), k=random.randint(0, 5))
+        if self.piso_actual == 0:
+            self.direccion = random.choice(["subiendo", "detenido"])
+
+        elif self.piso_actual == self.num_pisos-1:
+            self.direccion = random.choice(["bajando", "detenido"])
+
+        else:
+            self.direccion = random.choice(["subiendo", "bajando", "detenido"])
+
+        if self.direccion == "detenido":
+            self.destinos = []
+
+        elif self.direccion == "subiendo":
+            pisos_superiores = [p for p in range(self.piso_actual + 1, self.num_pisos)]
+            k = random.randint(1, min(5, len(pisos_superiores)))
+            self.destinos = random.sample(pisos_superiores, k) if k > 0 else []
+
+        elif self.direccion == "bajando":
+            pisos_inferiores = [p for p in range(0, self.piso_actual)]
+            k = random.randint(1, min(5, len(pisos_inferiores)))
+            self.destinos = random.sample(pisos_inferiores, k) if k > 0 else []
         # Asegurar que el piso actual no esté en destinos pendientes
         if self.piso_actual in self.destinos:
             self.destinos.remove(self.piso_actual)
+        self.destinos.sort()
+
+        self.personas_dentro = 1 if self.destinos.__len__() > 0 else 0
 
     def actualizar_estado(self):
         return (
             f"Piso actual: {self.piso_actual + 1}\n"
             f"Dirección: {self.direccion}\n"
-            f"Destinos pendientes: {[d+1 for d in self.destinos]}"
+            f"Personas Dentro: {self.personas_dentro}\n"
+            f"Destinos Pendientes: {[d+1 for d in self.destinos]}"
         )
 
 
@@ -62,7 +85,7 @@ class InterfazAscensores(tk.Tk):
         self.frame_botones = tk.Frame(self)
         self.frame_botones.pack(side=tk.LEFT, padx=20, pady=10)
 
-        tk.Label(self.frame_botones, text="Llamadas por piso:", font=("Arial", 12, "bold")).pack(pady=5)
+        tk.Label(self.frame_botones, text="Llamadas por Piso:", font=("Arial", 12, "bold")).pack(pady=5)
 
         for piso in range(self.num_pisos - 1, -1, -1):
             frame_piso = tk.Frame(self.frame_botones)
@@ -87,20 +110,15 @@ class InterfazAscensores(tk.Tk):
             else:
                 tk.Label(frame_piso, text="  ").pack(side=tk.LEFT, padx=5)
 
+        #Boton para detener el sistema
         self.btn_toggle_sistema = tk.Button(self, text="Detener Sistema" if self.est_sistema else "Activar Sistema",
                                             command=self.toggle_sistema)
         self.btn_toggle_sistema.pack(pady=5)
 
     def toggle_sistema(self):
-        self.est_sistema = 1 - self.est_sistema
-        self.btn_toggle_sistema.config(text="Detener Sistema" if self.est_sistema else "Activar Sistema")
+        self.destroy()
 
     def llamar_ascensor(self, piso_llamada, direccion_llamada):
-        if not self.est_sistema:
-            messagebox.showwarning("Sistema Detenido",
-                                   "Los ascensores no se encuentran operando, por favor, use las escaleras.")
-            return
-
         dir_llamada = 1 if direccion_llamada == "subir" else -1
 
         def dir_texto_a_num(dir_texto):
@@ -141,7 +159,7 @@ class InterfazAscensores(tk.Tk):
         for asc in self.ascensores:
             dir_actual = dir_texto_a_num(asc.direccion)
             destinos_pend = len(asc.destinos)
-            personas_dentro = 1 if destinos_pend > 0 else 0
+            personas_dentro = asc.personas_dentro
 
             tiempo_est = estimar_tiempo(
                 asc.piso_actual,
@@ -188,20 +206,19 @@ class InterfazAscensores(tk.Tk):
 
         tiempo = datos_asc[ascensor_seleccionado]["tiempo_estimado"]
         precision = prob if ascensor_seleccionado == 1 else 1 - prob
-
+        precision_pct = round(precision * 100, 2)
         # Mostrar resultado en popup
         msg = (
             f"Ascensor seleccionado: {asc_sel.nombre}\n"
             f"Piso llamado: {piso_llamada + 1}\n"
-            f"Tiempo estimado de llegada: {tiempo:.2f} segundos\n"
-            f"Precisión de selección (probabilidad): {precision:.2f}"
+            f"Tiempo estimado de llegada: {tiempo} segundos\n"
+            f"Precisión de selección (probabilidad): {precision_pct:.2f}%"
         )
         respuesta = messagebox.askyesno("Selección de Ascensor", msg + "\n\n¿Desea simular otro caso?")
 
         if not respuesta:
             self.destroy()
         else:
-            # Reiniciar estados para la siguiente simulación
             for asc in self.ascensores:
                 asc.reset_estado()
             self.actualizar_ui()
